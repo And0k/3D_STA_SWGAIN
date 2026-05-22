@@ -44,7 +44,7 @@ class SyntheticOceanDataset(Dataset):
         mask = np.ones((self.T, 1, self.Z, self.H, self.W), dtype=np.float32)
         sensor_prob = 0.5
         sensor_mask = (np.random.rand(self.Z, self.H, self.W) < sensor_prob).astype(np.float32)
-        mask *= sensor_mask[None, :, :, :, :]
+        mask *= sensor_mask[None, :, :, :]
         if random.random() < 0.3:
             drop_t = random.randint(0, self.T - 1)
             mask[drop_t] = 0.0

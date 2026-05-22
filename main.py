@@ -37,7 +37,7 @@ def run_training(device="cuda", checkpoint_dir = "./checkpoints"):
         dataset,
         batch_size=per_device_batch,
         shuffle=True,
-        num_workers=(0 if IS_XLA else 4),
+        num_workers=(0 if IS_XLA else 4 if device == "gpu" else 2),
         pin_memory= not IS_XLA
     )
 
