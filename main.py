@@ -1,7 +1,14 @@
+import memory_utils
+memory_utils.setup_memory_logging()
+import memory_utils
+import logging
+logger = logging.getLogger(__name__)
 # Скрипт запуска: монтирование Drive в Colab, создание даталоадера, инициализация моделей и запуск обучения
 from torch.utils.data import DataLoader
 from device_utils import init_device
 
+@memory_utils.log_memory_diff('Device Init')
+def init_wrapper(): return init_device()
 device, IS_XLA, xm, parallel_loader_factory, optimizer_step, save_checkpoint, is_master = init_device()
 
 import torch
