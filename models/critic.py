@@ -1,17 +1,7 @@
-
 import torch
 import torch.nn as nn
-import logging
 import os
-import psutil
-
-logger = logging.getLogger(__name__)
-
-def log_mem(msg):
-    """Logs current process Resident Set Size (RSS) in MB for memory monitoring."""
-    process = psutil.Process(os.getpid())
-    mem = process.memory_info().rss / 1024**2
-    logging.debug(f'[CRITIC MEM] {msg} | Current RSS: {mem:.2f} MB')
+from memory_utils import log_once
 
 class Conv3DBlock(nn.Module):
     """Standard 3D Convolutional block: Conv3d -> BatchNorm3d -> LeakyReLU."""
@@ -39,18 +29,16 @@ class Critic(nn.Module):
 
     def forward(self, x, mask):
         # Initial 6D shape: [B, C, T, Z, H, W]
-        log_mem(f'Forward Start | x: {list(x.shape)}, mask: {list(mask.shape)}')
+        log_once(f'Forward Start | x: {list(x.shape)}, mask: {list(mask.shape)}', mem=True)
 
         # 1. Handle temporal dimension broadcasting for 6D tensors
         if x.shape[2] != mask.shape[2]:
-            logging.debug(f'Expanding mask T={mask.shape[2]} to match x T={x.shape[2]}')
+            log_once(f'Expanding mask T={mask.shape[2]} to match x T={x.shape[2]}')
             mask = mask.expand(-1, -1, x.shape[2], -1, -1, -1)
 
-        # 2. Concatenate along channel dimension (dim 1) -> [B, 8, T, Z, H, W]
         combined = torch.cat([x, mask], dim=1)
 
         # 3. Reshape 6D to 5D for Conv3d: [B, C, T, Z, H, W] -> [B, C, T*Z, H, W]
-        # This treats temporal and vertical dimensions as a single spatial-temporal volume.
         B, C, T, Z, H, W = combined.shape
         combined_5d = combined.view(B, C, T * Z, H, W)
 
@@ -63,5 +51,5 @@ class Critic(nn.Module):
         x = x.view(x.size(0), -1)
         out = self.head(x)
 
-        log_mem("Forward pass completed")
+        log_once('Forward pass completed', mem=True)
         return out

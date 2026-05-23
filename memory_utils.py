@@ -7,6 +7,8 @@ import torch
 import functools
 from typing import Callable, Any
 
+from functools import lru_cache
+
 logger = logging.getLogger(__name__)
 
 def setup_memory_logging(file_path: str = '/content/drive/MyDrive/3D_STA_SWGAIN/memory_debug.log'):
@@ -50,3 +52,18 @@ def memory_monitor_loop(threshold_mb: int = 400, interval: int = 1):
             time.sleep(interval)
         except Exception:
             break
+
+
+@lru_cache(maxsize=None)
+def _log_mem_cached(msg: str, mem: bool, /) -> None:
+    """Executes logging exactly once per unique (msg, mem) pair. 
+    mem: if True additionally logs current process Resident Set Size (RSS) in MB"""
+    if mem:
+        rss_mb: Final[float] = psutil.Process(os.getpid()).memory_info().rss / (1024 ** 2)
+        logging.debug("%s | Current RSS: %.2f MB", msg, rss_mb)
+    else:
+        logging.debug("%s", msg)
+
+def log_once(msg: str, /, *, mem: bool = False) -> None:
+    """Public interface with keyword-only mem flag delegating to cached core."""
+    _log_mem_cached(msg, mem)
