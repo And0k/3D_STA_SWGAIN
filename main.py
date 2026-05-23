@@ -26,6 +26,10 @@ def optimizer_step_fn(opt):
 
 
 def run_training(device="cuda", checkpoint_dir = "./checkpoints"):
+    import sys, logging
+    for handler in logging.root.handlers[:]: logging.root.removeHandler(handler)
+    logging.basicConfig(level=logging.DEBUG, format='%(message)s', stream=sys.stdout)
+    logging.info('--- Logging Initialized in run_training ---')
 
     # params
     T = 4
@@ -34,7 +38,7 @@ def run_training(device="cuda", checkpoint_dir = "./checkpoints"):
     W = 32
     C = 2
 
-    per_device_batch = 2
+    per_device_batch = 1
     epochs = 1
 
     dataset = SyntheticOceanDataset(n_samples=200, T_window=T, Z=Z, H=H, W=W, channels=C)
@@ -44,12 +48,12 @@ def run_training(device="cuda", checkpoint_dir = "./checkpoints"):
         dataset,
         batch_size=per_device_batch,
         shuffle=True,
-        num_workers=(0 if IS_XLA else 4 if device == "gpu" else 2),
-        pin_memory= not IS_XLA
+        num_workers=0,
+        pin_memory=False
     )
 
-    G = Generator(T, Z, H, W, channels=C, base_dim=32).to(device)
-    D = Critic(T, Z, H, W, channels=C, base_dim=32).to(device)
+    G = Generator(T, Z, H, W, channels=C, base_dim=16).to(device)
+    D = Critic(base_dim=16, T_window=T, Z=Z, H=H, W=W).to(device)
 
     optG = torch.optim.Adam(G.parameters(), lr=1e-4, betas=(0.5, 0.9))
     optD = torch.optim.Adam(D.parameters(), lr=1e-4, betas=(0.5, 0.9))
